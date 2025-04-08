@@ -8,7 +8,7 @@ import MessageSkeleton from "./skeletons/MessageSkeleton";
 import { useAuthStore } from "../store/useAuthStore";
 import { formatMessageTime } from "../lib/utils";
 
-// Language mapping for MyMemory API
+// Language mapping for Google Translate API
 const languageMap = {
   English: "en",
   German: "de",
@@ -47,7 +47,7 @@ const ChatContainer = () => {
     const translateMessages = async () => {
       if (!authUser || !authUser.preferredLanguage || messages.length === 0) return;
 
-      const targetLang = languageMap[authUser.preferredLanguage] || "en"; // Default to English
+      const targetLang = languageMap[authUser.preferredLanguage] || "en";
       if (targetLang === "en") {
         setTranslatedMessages(messages);
         return;
@@ -56,14 +56,22 @@ const ChatContainer = () => {
       const translatedMsgs = await Promise.all(
         messages.map(async (msg) => {
           try {
-            const response = await axios.get("https://api.mymemory.translated.net/get", {
-              params: {
+            const response = await axios.post(
+              "https://translation.googleapis.com/language/translate/v2",
+              {
                 q: msg.text,
-                langpair: `en|${targetLang}`,
+                target: targetLang,
+                format: "text",
               },
-            });
+              {
+                params: {
+                  key: "AIzaSyC4HADia7X8sPhMuXWtfP74XbA9L5-VrEA", // <-- Replace with your actual key
+                },
+              }
+            );
 
-            return { ...msg, text: response.data.responseData.translatedText };
+            const translatedText = response.data.data.translations[0].translatedText;
+            return { ...msg, text: translatedText };
           } catch (error) {
             console.error("Translation error:", error.message);
             return msg;
@@ -98,7 +106,7 @@ const ChatContainer = () => {
             className={`chat ${message.senderId === authUser._id ? "chat-end" : "chat-start"}`}
             ref={messageEndRef}
           >
-            <div className=" chat-image avatar">
+            <div className="chat-image avatar">
               <div className="size-10 rounded-full border">
                 <img
                   src={
